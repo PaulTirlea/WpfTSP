@@ -7,4 +7,4 @@ Acestă aplicație oferă o soluție pentru Problema Comis-Voyageur (TSP), utili
 Clonează repository-ul:
 
    ```bash
-   git clone [repository-url]
+   git clone https://github.com/PaulTirlea/WpfTSP.git)https://github.com/PaulTirlea/WpfTSP.git
