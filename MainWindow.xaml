@@ -6,7 +6,7 @@
         xmlns:oxy="http://oxyplot.org/wpf"
         xmlns:local="clr-namespace:WpfTSP"
         mc:Ignorable="d"
-        Title="Traveling Salesman Problem Solver" Height="600" Width="800">
+        Title="Traveling Salesman Problem Solver" Height="800" Width="800">
     
     <Grid Margin="10">
         
@@ -48,6 +48,12 @@
                 <StackPanel Grid.Row="3" Orientation="Horizontal">
                     <Label Content="Iterations:" VerticalAlignment="Center"/>
                     <TextBox x:Name="IterationsTextBox" Margin="5" Width="50"/>
+
+                    <Label Content="Method:" VerticalAlignment="Center" Margin="10"/>
+                    <ComboBox x:Name="MethodComboBox" SelectedIndex="0" Margin="5" SelectionChanged="MethodComboBox_SelectionChanged">
+                        <ComboBoxItem Content="Local Search"/>
+                        <ComboBoxItem Content="Variable Neighborhood Search"/>
+                    </ComboBox>
                 </StackPanel>
             </StackPanel>
 
