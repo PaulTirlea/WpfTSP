@@ -130,7 +130,7 @@ namespace WpfTSP
                 }
 
                 count++;
-                Console.WriteLine($"Iterația = {count} -> Distanța = {bestDistance}");
+                Console.WriteLine($"Iteratia = {count} -> Distanta = {bestDistance}");
             }
 
             return bestSolution;
