@@ -5,6 +5,11 @@ namespace WpfTSP
 {
     public class FileUploader
     {
+        /// <summary>
+        /// Încarcă o matrice de distanțe dintr-un fișier specificat.
+        /// </summary>
+        /// <param name="filePath">Calea către fișierul care conține matricea de distanțe.</param>
+        /// <returns>Matricea de distanțe sau null în caz de eroare.</returns>
         public static double[,] LoadDistanceMatrix(string filePath)
         {
             try
@@ -28,7 +33,7 @@ namespace WpfTSP
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading distance matrix: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Eroare la încărcarea matricei de distanțe: {ex.Message}", "Eroare", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
         }

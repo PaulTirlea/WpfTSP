@@ -13,21 +13,32 @@ namespace WpfTSP
         private CancellationTokenSource cancellationTokenSource;
         private bool isRunning = false;
 
+        /// <summary>
+        /// Constructorul clasei MainWindow.
+        /// Inițializează componentele și se abonează la evenimentul de actualizare a celei mai bune distanțe.
+        /// </summary>
         public MainWindow()
         {
             InitializeComponent();
             InitializeTspPlotModel();
 
-            // Abonare la evenimentul de actualizare a celei mai bune distanțe
+            // Evenimentul de actualizare a celei mai bune distanțe
             TSPSolver.BestDistanceUpdated += UpdateBestDistance;
         }
 
+        /// <summary>
+        /// Inițializează modelul de grafic pentru afișarea traseului.
+        /// </summary>
         private void InitializeTspPlotModel()
         {
             tspPlotModel = new PlotModel();
             TspPlot.Model = tspPlotModel;
         }
 
+        /// <summary>
+        /// Actualizează interfața grafică cu cea mai bună distanță.
+        /// </summary>
+        /// <param name="bestDistance">Cea mai bună distanță.</param>
         private void UpdateBestDistance(double bestDistance)
         {
             // Actualizați interfața grafică cu cea mai bună distanță
@@ -37,7 +48,11 @@ namespace WpfTSP
             });
         }
 
-
+        /// <summary>
+        /// Gestionează evenimentul de click pe butonul de start/stop al algoritmului.
+        /// </summary>
+        /// <param name="sender">Obiectul care a generat evenimentul.</param>
+        /// <param name="e">Argumentele evenimentului.</param>
         private async void StartButton_Click(object sender, RoutedEventArgs e)
         {
             tspPlotModel.Series.Clear();
@@ -52,7 +67,7 @@ namespace WpfTSP
 
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                MessageBox.Show("Please select a file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Selectați un fișier.", "Eroare", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -77,14 +92,14 @@ namespace WpfTSP
                 var seed = TSPSolver.SeedFunction(distanceMatrix);
                 int[] result;
 
-                if (MethodComboBox.SelectedIndex == 0) // Local Search
+                if (MethodComboBox.SelectedIndex == 0) // Căutare Locală
                 {
                     result = await Task.Run(() =>
                     {
                         return TSPSolver.LocalSearch(distanceMatrix, seed, maxAttempts, neighbourhoodSize, UpdateBestDistance);
                     }, cancellationToken);
                 }
-                else // Variable Neighborhood Search (VNS)
+                else // Căutare în Vecinătate Variabilă (VNS)
                 {
                     result = await Task.Run(() =>
                     {
@@ -101,12 +116,16 @@ namespace WpfTSP
             }
         }
 
-
+        /// <summary>
+        /// Deschide o fereastră de dialog pentru selectarea unui fișier.
+        /// </summary>
+        /// <param name="sender">Obiectul care a generat evenimentul.</param>
+        /// <param name="e">Argumentele evenimentului.</param>
         private void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
             var openFileDialog = new OpenFileDialog
             {
-                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*"
+                Filter = "Fișiere text (*.txt)|*.txt|Toate fișierele (*.*)|*.*"
             };
 
             if (openFileDialog.ShowDialog() == true)
@@ -115,6 +134,11 @@ namespace WpfTSP
             }
         }
 
+        /// <summary>
+        /// Oprește execuția algoritmului.
+        /// </summary>
+        /// <param name="sender">Obiectul care a generat evenimentul.</param>
+        /// <param name="e">Argumentele evenimentului.</param>
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
             // Oprește algoritmul
@@ -122,22 +146,28 @@ namespace WpfTSP
             isRunning = false;
         }
 
+        /// <summary>
+        /// Gestionează schimbarea selecției în combobox-ul de metode.
+        /// Afișează/ascunde inputurile necesare în funcție de metoda selectată.
+        /// </summary>
+        /// <param name="sender">Obiectul care a generat evenimentul.</param>
+        /// <param name="e">Argumentele evenimentului.</param>
         private void MethodComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Afiseaza/invizibilizeaza inputurile necesare in functie de metoda selectata
-            if (MethodComboBox.SelectedIndex == 0) // Local Search
+            // Afișează/ascunde inputurile necesare în funcție de metoda selectată
+            if (MethodComboBox.SelectedIndex == 0) // Căutare Locală
             {
-                // Afiseaza sau ascunde inputurile pentru Local Search
+                // Afișează sau ascunde inputurile pentru Căutare Locală
                 MaxAttemptsTextBox.Visibility = Visibility.Visible;
                 NeighbourhoodSizeTextBox.Visibility = Visibility.Visible;
-                IterationsTextBox.Visibility = Visibility.Collapsed; // Ascunde inputul pentru Iterations
+                IterationsTextBox.Visibility = Visibility.Collapsed; // Ascunde inputul pentru Iterații
             }
-            else // Variable Neighborhood Search
+            else // Căutare în Vecinătate Variabilă
             {
-                // Afiseaza sau ascunde inputurile pentru Variable Neighborhood Search
+                // Afișează sau ascunde inputurile pentru Căutare în Vecinătate Variabilă
                 MaxAttemptsTextBox.Visibility = Visibility.Visible;
                 NeighbourhoodSizeTextBox.Visibility = Visibility.Visible;
-                IterationsTextBox.Visibility = Visibility.Visible; // Afiseaza inputul pentru Iterations
+                IterationsTextBox.Visibility = Visibility.Visible; // Afișează inputul pentru Iterații
             }
         }
 
