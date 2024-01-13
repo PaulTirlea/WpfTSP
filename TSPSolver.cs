@@ -1,6 +1,5 @@
 ﻿using OxyPlot;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -23,6 +22,30 @@ namespace WpfTSP
             // Concatenează primul oraș la sfârșit pentru a închide traseul
             return sequence.Concat(new[] { sequence[0] }).ToArray();
         }
+        // Funcție pentru realizarea căutării aleatoare
+        private static (int[] solution, double distance) RandomSearch(double[,] distanceMatrix)
+        {
+            int[] randomSolution = SeedFunction(distanceMatrix);
+            double bestDistance = DistanceCalc(distanceMatrix, randomSolution);
+
+            for (int i = 0; i < 100; i++)
+            {
+                int[] candidate = LocalSearch(distanceMatrix, Stochastic2Opt(distanceMatrix, randomSolution));
+
+                candidate[candidate.Length - 1] = candidate[0];
+
+                double candidateDistance = DistanceCalc(distanceMatrix, candidate);
+
+                if (candidateDistance < bestDistance)
+                {
+                    bestDistance = candidateDistance;
+                    randomSolution = candidate;
+                }
+            }
+
+            return (randomSolution, bestDistance);
+        }
+
 
         // Funcție pentru realizarea operației de 2-opt stochastic
         public static int[] Stochastic2Opt(double[,] distanceMatrix, int[] cityTour)
@@ -54,26 +77,30 @@ namespace WpfTSP
         public static int[] ThreeOpt(double[,] distanceMatrix, int[] cityTour)
         {
             var tourList = cityTour.ToList();
-            int tourLength = tourList.Count;
+            int n = tourList.Count;
 
-            for (int i = 0; i < tourLength - 2; i++)
+            for (int i = 0; i < n - 6; i++)
             {
-                for (int j = i + 2; j < tourLength - 1; j++)
+                for (int j = i + 2; j < n - 4; j++)
                 {
-                    for (int k = j + 2; k < tourLength; k++)
+                    for (int k = j + 2; k < n - 2; k++)
                     {
-                        // Implementarea 3-opt: schimbă segmentele alese
-                        var newTour = ReverseSegment(tourList, i, j);
-                        newTour = ReverseSegment(newTour, j + 1, k);
-                        newTour = ReverseSegment(newTour, k + 1, tourLength - 1);
+                        var option1 = tourList.GetRange(i, j - i + 1);
+                        var option2 = tourList.GetRange(j + 1, k - j);
+                        var option3 = tourList.GetRange(k + 1, n - k - 1).Concat(tourList.GetRange(0, i + 1));
 
-                        double newDistance = DistanceCalc(distanceMatrix, newTour.ToArray());
+                        var newTour = option1.Concat(option2).Concat(option3).ToList();
+                        newTour.Add(newTour[0]);
+
                         double currentDistance = DistanceCalc(distanceMatrix, tourList.ToArray());
+                        double newDistance = DistanceCalc(distanceMatrix, newTour.ToArray());
 
-                        // Actualizează turul dacă soluția nouă este mai bună
                         if (newDistance < currentDistance)
                         {
-                            tourList = newTour.ToList();
+                            // Adăugați orașul de pornire la începutul listei
+                            tourList = newTour;
+                            tourList.Insert(0, tourList[tourList.Count - 1]);
+                            break; // Ieșiți din buclă dacă am găsit o îmbunătățire
                         }
                     }
                 }
@@ -82,54 +109,41 @@ namespace WpfTSP
             return tourList.ToArray();
         }
 
-        private static List<int> ReverseSegment(List<int> tour, int start, int end)
-        {
-            var reversedSegment = tour.GetRange(start, end - start + 1);
-            reversedSegment.Reverse();
-            tour.RemoveRange(start, end - start + 1);
-            tour.InsertRange(start, reversedSegment);
-            return tour;
-        }
 
 
         // Funcție pentru efectuarea căutării locale
         public static int[] LocalSearch(double[,] distanceMatrix, int[] cityTour, int maxAttempts = 50, int neighbourhoodSize = 5, Action<double> distanceUpdateCallback = null)
         {
-            var count = 0;
             var solution = cityTour.ToArray();
             double bestDistance = DistanceCalc(distanceMatrix, solution);
+            int attempts = 0;
 
-            // Încearcă îmbunătățirea soluției pentru un număr de încercări specificat
-            while (count < maxAttempts)
+            while (attempts < maxAttempts)
             {
                 var candidate = Stochastic2Opt(distanceMatrix, solution);
-
-                // Adaugă primul oraș la sfârșit pentru a închide traseul
-                candidate[candidate.Length - 1] = candidate[0];
-
                 double candidateDistance = DistanceCalc(distanceMatrix, candidate);
-                double currentDistance = DistanceCalc(distanceMatrix, solution);
 
-                // Actualizează soluția dacă soluția candidată este mai bună
-                if (candidateDistance < currentDistance)
+                if (candidateDistance < bestDistance)
                 {
-                    solution = candidate.ToArray();
+                    // Adăugați orașul de pornire la sfârșitul listei
+                    candidate[candidate.Length - 1] = candidate[0];
 
-                    // Verifică dacă soluția curentă este cea mai bună globală
-                    if (candidateDistance < bestDistance)
-                    {
-                        bestDistance = candidateDistance;
-                        distanceUpdateCallback?.Invoke(bestDistance);
-                    }
+                    solution = candidate;
+                    bestDistance = candidateDistance;
+                    distanceUpdateCallback?.Invoke(bestDistance);
+                    attempts = 0; // Resetează numărul de încercări dacă am găsit o îmbunătățire
                 }
 
-                count++;
+                attempts++;
             }
 
             return solution;
         }
 
 
+
+
+        // Funcție pentru realizarea căutării VNS
         public static int[] VariableNeighborhoodSearch(double[,] distanceMatrix, int[] cityTour, int maxAttempts = 20, int neighbourhoodSize = 5, int iterations = 50, CancellationToken cancellationToken = default, PlotModel tspPlotModel = null)
         {
             var count = 0;
@@ -137,50 +151,58 @@ namespace WpfTSP
             var bestSolution = cityTour.ToArray();
             double bestDistance = double.MaxValue;
 
-            // Încearcă îmbunătățirea soluției pentru un număr de iterații specificat
+            // Use RandomSearch to get an initial solution
+            var randomSearchResult = RandomSearch(distanceMatrix);
+            bestSolution = randomSearchResult.solution;
+            bestDistance = randomSearchResult.distance;
+
+            // Continue with VNS iterations
             while (count < iterations)
             {
-                // Verifică dacă trebuie să întrerupem execuția
                 if (cancellationToken.IsCancellationRequested)
                 {
                     break;
                 }
 
-                // Aplică 2-opt și 3-opt alternativ pentru a îmbunătăți soluția curentă
-                if (count % 2 == 0)
-                {
-                    solution = Stochastic2Opt(distanceMatrix, solution);
-                }
-                else
-                {
-                    solution = ThreeOpt(distanceMatrix, solution);
-                }
+                solution = LocalSearch(distanceMatrix, solution, maxAttempts, neighbourhoodSize);
 
                 double currentDistance = DistanceCalc(distanceMatrix, solution);
 
-                // Actualizează soluția globală dacă soluția curentă este mai bună
-                if (currentDistance < bestDistance)
+                if (currentDistance >= bestDistance)
+                {
+                    solution = ThreeOpt(distanceMatrix, solution);
+                    currentDistance = DistanceCalc(distanceMatrix, solution);
+                }
+
+                // Use RandomSearch again
+                var randomSearchResultAgain = RandomSearch(distanceMatrix);
+                var randomDistance = randomSearchResultAgain.distance;
+
+                if (randomDistance < bestDistance)
+                {
+                    bestDistance = randomDistance;
+                    bestSolution = randomSearchResultAgain.solution;
+                }
+                else if (currentDistance < bestDistance)
                 {
                     bestDistance = currentDistance;
                     bestSolution = solution.ToArray();
 
-                    // Invocă evenimentul de actualizare a celei mai bune distanțe
-                    BestDistanceUpdated?.Invoke(bestDistance);
 
-                    // Plotează turul curent cu o culoare specifică
+
                     GraphPlotter.PlotTourWithColor(distanceMatrix, bestSolution, OxyColor.FromRgb(173, 216, 230), tspPlotModel);
+                    tspPlotModel.InvalidatePlot(true);
                 }
 
                 count++;
-                Console.WriteLine($"Iterația = {count} -> Distanța = {bestDistance}");
+                Console.WriteLine($"Iteratia = {count} -> Distanta = {bestDistance}");
             }
 
-            // Afișează traseul final în consolă
             Console.WriteLine(GetTourString(bestSolution));
+            BestDistanceUpdated?.Invoke(bestDistance);
 
             return bestSolution;
         }
-
 
 
         // Funcție pentru calcularea distanței turului dat
